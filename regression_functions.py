@@ -1,3 +1,8 @@
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+import pandas as pd
+
+
 def run_logistic_regression(X, y):
     # 1. تحويل الأعمدة النصية إلى متغيرات رقمية
     X_encoded = pd.get_dummies(X, drop_first=True)
