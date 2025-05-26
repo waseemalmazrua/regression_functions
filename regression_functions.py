@@ -15,9 +15,15 @@ def run_pipeline_logistic_regression(df, target_col, test_size=0.2, random_state
     """
     #  فصل الهدف عن الميزات
     X = df.drop([target_col, 'Visit_Date'], axis=1)
-    y = df[target_col].map({'No': 0, 'Yes': 1})  # تحويل الفئة إلى رقم
+    y_raw = df[target_col]
 
-    #  تحديد الأعمدة الرقمية والفئوية
+    #  ترميز ذكي للفئة الهدف إذا كانت نصية
+    if y_raw.dtype == 'object':
+        y = y_raw.map({'No': 0, 'Yes': 1})
+    else:
+        y = y_raw
+
+    # 🧠 تحديد الأعمدة الرقمية والفئوية
     numeric_cols = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
     categorical_cols = X.select_dtypes(include=['object', 'category']).columns.tolist()
 
@@ -27,13 +33,13 @@ def run_pipeline_logistic_regression(df, target_col, test_size=0.2, random_state
         ('cat', OneHotEncoder(drop='first', sparse_output=False), categorical_cols)
     ])
 
-    # إنشاء الـ Pipeline
+    #  إنشاء الـ Pipeline
     pipeline = Pipeline([
         ('preprocessing', preprocessor),
         ('classifier', LogisticRegression(max_iter=1000))
     ])
 
-    # ✂ تقسيم البيانات
+    #  تقسيم البيانات
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=test_size, random_state=random_state
     )
@@ -53,6 +59,7 @@ def run_pipeline_logistic_regression(df, target_col, test_size=0.2, random_state
     print("Classification Report:\n", classification_report(y_test, y_test_pred))
 
     return pipeline
+
 
 
 
