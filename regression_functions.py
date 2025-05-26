@@ -1,62 +1,105 @@
-
-from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, r2_score, mean_squared_error
-import pandas as pd
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn import set_config
 
-def run_logistic_regression(X, y, test_size=0.2, random_state=42):
+set_config(transform_output="pandas")
+
+def run_pipeline_logistic_regression(df, target_col, test_size=0.2, random_state=42):
     """
-    نموذج لوجستي مع تقسيم Train/Test.
-    يعالج الأعمدة الفئوية تلقائيًا.
+    تدريب نموذج Logistic Regression باستخدام Pipeline.
+    تشمل المعالجة: OneHotEncoder للأعمدة النصية، StandardScaler للأعمدة الرقمية.
     """
-    # ترميز الأعمدة الفئوية
-    X_encoded = pd.get_dummies(X, drop_first=True)
+    #  فصل الهدف عن الميزات
+    X = df.drop([target_col, 'Visit_Date'], axis=1)
+    y = df[target_col].map({'No': 0, 'Yes': 1})  # تحويل الفئة إلى رقم
 
-    # تقسيم البيانات
-    X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=test_size, random_state=random_state)
+    #  تحديد الأعمدة الرقمية والفئوية
+    numeric_cols = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    categorical_cols = X.select_dtypes(include=['object', 'category']).columns.tolist()
 
-    # تدريب النموذج
-    model = LogisticRegression(max_iter=1000)
-    model.fit(X_train, y_train)
+    # ⚙️ تجهيز المعالجة باستخدام ColumnTransformer
+    preprocessor = ColumnTransformer([
+        ('num', StandardScaler(), numeric_cols),
+        ('cat', OneHotEncoder(drop='first', sparse_output=False), categorical_cols)
+    ])
 
-    # التنبؤ على المجموعتين
-    train_preds = model.predict(X_train)
-    test_preds = model.predict(X_test)
+    # إنشاء الـ Pipeline
+    pipeline = Pipeline([
+        ('preprocessing', preprocessor),
+        ('classifier', LogisticRegression(max_iter=1000))
+    ])
 
-    # النتائج
-    print("🚀 Logistic Regression Results with Train/Test Split")
-    print("Train Accuracy:", accuracy_score(y_train, train_preds))
-    print("Test Accuracy :", accuracy_score(y_test, test_preds))
-    print("\\nTest Confusion Matrix:\\n", confusion_matrix(y_test, test_preds))
-    print("Test Classification Report:\\n", classification_report(y_test, test_preds))
+    # ✂ تقسيم البيانات
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=random_state
+    )
 
-    return model
+    #  تدريب النموذج
+    pipeline.fit(X_train, y_train)
 
-def run_linear_regression(X, y, test_size=0.2, random_state=42):
+    #  التنبؤ
+    y_train_pred = pipeline.predict(X_train)
+    y_test_pred = pipeline.predict(X_test)
+
+    #  عرض النتائج
+    print(" Logistic Regression Results with Pipeline")
+    print("Train Accuracy:", accuracy_score(y_train, y_train_pred))
+    print("Test Accuracy :", accuracy_score(y_test, y_test_pred))
+    print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_test_pred))
+    print("Classification Report:\n", classification_report(y_test, y_test_pred))
+
+    return pipeline
+
+
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score, mean_squared_error
+
+def run_pipeline_linear_regression(df, target_col, test_size=0.2, random_state=42):
     """
-    نموذج انحدار خطي مع تقسيم Train/Test.
-    يعالج الأعمدة الفئوية تلقائيًا.
+    تدريب نموذج Linear Regression باستخدام Pipeline.
+    تشمل المعالجة: OneHotEncoder للأعمدة النصية، StandardScaler للأعمدة الرقمية.
     """
-    X_encoded = pd.get_dummies(X, drop_first=True)
+    #  فصل الهدف عن الميزات
+    X = df.drop([target_col, 'Visit_Date'], axis=1)
+    y = df[target_col]
 
-    # تقسيم البيانات
-    X_train, X_test, y_train, y_test = train_test_split(X_encoded, y, test_size=test_size, random_state=random_state)
+    #  تحديد الأعمدة الرقمية والفئوية
+    numeric_cols = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    categorical_cols = X.select_dtypes(include=['object', 'category']).columns.tolist()
 
-    model = LinearRegression()
-    model.fit(X_train, y_train)
+    # ⚙️ تجهيز المعالجة باستخدام ColumnTransformer
+    preprocessor = ColumnTransformer([
+        ('num', StandardScaler(), numeric_cols),
+        ('cat', OneHotEncoder(drop='first', sparse_output=False), categorical_cols)
+    ])
 
-    # التنبؤ
-    train_preds = model.predict(X_train)
-    test_preds = model.predict(X_test)
+    #  إنشاء الـ Pipeline
+    pipeline = Pipeline([
+        ('preprocessing', preprocessor),
+        ('regressor', LinearRegression())
+    ])
 
-    print("📈 Linear Regression Results with Train/Test Split")
-    print("Train R² Score:", r2_score(y_train, train_preds))
-    print("Test R² Score :", r2_score(y_test, test_preds))
-    print("Test Mean Squared Error:", mean_squared_error(y_test, test_preds))
+    #  تقسيم البيانات
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=random_state
+    )
 
-    print("\\nTest Coefficients:")
-    for feature, coef in zip(X_encoded.columns, model.coef_):
-        print(f"  {feature}: {coef:.4f}")
+    #  تدريب النموذج
+    pipeline.fit(X_train, y_train)
 
-    return model
+    #  التنبؤ
+    y_train_pred = pipeline.predict(X_train)
+    y_test_pred = pipeline.predict(X_test)
 
+    #  عرض النتائج
+    print("📈 Linear Regression Results with Pipeline")
+    print("Train R² Score:", r2_score(y_train, y_train_pred))
+    print("Test R² Score :", r2_score(y_test, y_test_pred))
+    print("Test Mean Squared Error:", mean_squared_error(y_test, y_test_pred))
+
+    return pipeline
