@@ -180,7 +180,36 @@ def run_pipeline_linear_regression(df, target_col, test_size=0.2, random_state=4
     print("Test Mean Squared Error:", mean_squared_error(y_test, y_test_pred))
 
     return pipeline
+=========================================================================
+# اذا سويت كودينق وخلصت 
+def run_simple_linear_regression(df, target_col, test_size=0.2, random_state=42):
+    from sklearn.pipeline import Pipeline
+    from sklearn.linear_model import LinearRegression
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import r2_score, mean_squared_error
 
+    X = df.drop(columns=[target_col])
+    y = df[target_col]
+
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),
+        ('regressor', LinearRegression())
+    ])
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+    pipeline.fit(X_train, y_train)
+
+    y_train_pred = pipeline.predict(X_train)
+    y_test_pred = pipeline.predict(X_test)
+
+    print("\n📊 Linear Regression Results (Encoded Data)")
+    print("Train R² Score:", r2_score(y_train, y_train_pred))
+    print("Test R² Score :", r2_score(y_test, y_test_pred))
+    print("Test MSE      :", mean_squared_error(y_test, y_test_pred))
+
+    return pipeline
+=========================================================================
 
 
 
